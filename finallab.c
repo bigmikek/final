@@ -71,54 +71,84 @@ int init_socket()
 
         return 0;
 }
-void radio_customization()
+void tcity()
 {
-    char* sel[1];
-    printf("%1s", sel);
-    volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
-    printf("\n\rPress t to change the tune frequency\n\rPress U to change freq by 1kHz\n\rPress u to change freq by 100Hz\n\rPress d to change freq by -100 Hz\n\rPress D to change freq by -1khZ\n\rPress f to change the frequency\n\r");
-    scanf("%1s", &sel);
-    if (sel[1] = "t")
-    {
-        printf("\n\rPlease enter desired tuning frequency\n\r");
+	volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
+	printf("\n\rPlease enter desired tuning frequency\n\r");
         scanf("%d", &tuneset);
         radioTuner_tuneRadio(my_periph,tuneset);  
         printf("\n\rfrequency tuned to %d Hz\n\r", tuneset);
-        radio_customization();
-    }
-    else if (sel[1] = "U")
-    {
-        adcset = adcset + 1000;
+}
+
+void ucity()
+{
+	volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
+	adcset = adcset + 100;
         radioTuner_setAdcFreq(my_periph,adcset);
         printf("\n\rNew Frequency is %d\n\r", adcset);
-        radio_customization();
-    }
-    else if (sel[1] = "u")
-    {
-        adcset = adcset + 100;
+}
+
+void Ucity()
+{
+	volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
+	adcset = adcset + 1000;
         radioTuner_setAdcFreq(my_periph,adcset);
         printf("\n\rNew Frequency is %d\n\r", adcset);
-        radio_customization();
-    }
-    else if (sel[1] = "d")
-    {
-        adcset = adcset - 100;
+}
+
+void dcity()
+{
+	volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
+	adcset = adcset - 100;
         radioTuner_setAdcFreq(my_periph,adcset);
         printf("\n\rNew Frequency is %d\n\r", adcset);
-        radio_customization();
-    }
-    else if (sel[1] = "D")
-    {
-        adcset = adcset - 1000;
+}
+void Dcity()
+{
+	volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
+	adcset = adcset - 1000;
         radioTuner_setAdcFreq(my_periph,adcset);
         printf("\n\rNew Frequency is %d\n\r", adcset);
-        radio_customization();
+}
+
+void radio_customization()
+{
+    char sel[20];
+    
+    printf("\n\rPress t to change the tune frequency\n\rPress U to change freq by 1kHz\n\rPress u to change freq by 100Hz\n\rPress d to change freq by -100 Hz\n\rPress D to change freq by -1khZ\n\rPress f to change the frequency\n\r");
+    scanf("%s", sel);
+    const char *inputsel[]={"t","u","d","U","D"};
+    if (strcmp(sel,inputsel[0]) == 0)
+    {
+        
+        tcity();
+    }
+    else if (strcmp(sel,inputsel[3]) == 0)
+    {
+        
+        Ucity();
+    }
+    else if (strcmp(sel,inputsel[1]) == 0)
+    {
+        
+        ucity();
+    }
+    else if (strcmp(sel,inputsel[2]) == 0)
+    {
+        
+        dcity();
+    }
+    else if (strcmp(sel,inputsel[4]) == 0)
+    {
+        
+        Dcity();
     }
     else
     {
         printf("\n\rinvalid entry, please try again\n\r");
-        radio_customization();
     }
+	
+    radio_customization();
     
 
 }
