@@ -25,11 +25,14 @@ int readval;
 int samples;
 int values;
 int sent_bytes;
-char* data[256];
+int data[256];
+short int mycntr;
 int adcset;
 int tuneset;
 int tune2;
 char addr[20];
+char* packet;
+pthread_t thread_id;
 
 
 int handle;
@@ -71,13 +74,59 @@ int init_socket()
 
         return 0;
 }
+void *UDPtime (void *vargp)
+{
+    volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
+    unsigned short port = 30000;
+    
+    printf("\n\rThread Established in UDPtime!\n\r");
+    init_socket();
+
+        struct sockaddr_in address;
+
+    memset((void * ) &address, 0, sizeof(address));
+
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = inet_addr(addr); // this is address of host which I want to send the socket
+        address.sin_port = htons(port);
+        //printf("\n\raddress set!\n\r");
+
+
+    
+        printf("\n\rbeginning network transmission, standby\n\r");
+            
+            while(1)
+            {
+            readval = *(my_periph+RADIO_TUNER_FIFO_COUNTS);
+            if (readval > 256)
+            {
+                //printf("\n\rread > 256\n\r");
+                mycntr = readval;
+                //printf("\n\rreadval set to data\n\r");
+            for (int i = 0; i < 256; i++)
+                {
+                    data[i] = *(my_periph+RADIO_TUNER_FIFO_DATA);
+                }
+            //printf("\n\rdata array filled\n\r");
+            char sendbuffer[1026];
+            memcpy(sendbuffer, &mycntr, 2);
+            memcpy(sendbuffer + 2, &data, 1024);
+            //printf("\n\r%x\n\r", data[512]);
+            sent_bytes = sendto(handle, sendbuffer, 1026, 0, (const struct sockaddr*) &address, sizeof(struct sockaddr_in));
+            }
+        
+        
+        }
+    
+}
+
 void tcity()
 {
 	volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
 	printf("\n\rPlease enter desired tuning frequency\n\r");
-        scanf("%d", &tuneset);
-        radioTuner_tuneRadio(my_periph,tuneset);  
-        printf("\n\rfrequency tuned to %d Hz\n\r", tuneset);
+    scanf("%d", &tuneset);
+    radioTuner_tuneRadio(my_periph,tuneset);  
+    printf("\n\rfrequency tuned to %d Hz\n\r", tuneset);
 }
 
 void ucity()
@@ -110,14 +159,26 @@ void Dcity()
         radioTuner_setAdcFreq(my_periph,adcset);
         printf("\n\rNew Frequency is %d\n\r", adcset);
 }
+void fcity()
+{
+    volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);
+	printf("\n\rPlease enter desired listening frequency\n\r");
+    scanf("%d", &adcset);
+    radioTuner_setAdcFreq(my_periph,adcset);
+    printf("\n\rNew Frequency is %d\n\r", adcset);
+}
 
 void radio_customization()
 {
+    pthread_create(&thread_id, NULL, UDPtime, NULL);
+    printf("\n\rThread Created!\n\r");
     char sel[20];
-    
+    while(1)
+    {
+    printf("\n\rBeginning Customization!\n\r");
     printf("\n\rPress t to change the tune frequency\n\rPress U to change freq by 1kHz\n\rPress u to change freq by 100Hz\n\rPress d to change freq by -100 Hz\n\rPress D to change freq by -1khZ\n\rPress f to change the frequency\n\r");
     scanf("%s", sel);
-    const char *inputsel[]={"t","u","d","U","D"};
+    const char *inputsel[]={"t","u","d","U","D", "f"};
     if (strcmp(sel,inputsel[0]) == 0)
     {
         
@@ -143,57 +204,29 @@ void radio_customization()
         
         Dcity();
     }
+    else if (strcmp(sel,inputsel[5]) == 0)
+    {
+        
+        fcity();
+    }
     else
     {
         printf("\n\rinvalid entry, please try again\n\r");
     }
-	
-    radio_customization();
+    }
+    
     
 
 }
 
-void *UDPtime (volatile unsigned int *periph_base, void *vargp)
-{
-    unsigned short port = 30000;
-    
 
-    init_socket();
-
-        struct sockaddr_in address;
-
-    memset((void * ) &address, 0, sizeof(address));
-
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = inet_addr(addr); // this is address of host which I want to send the socket
-        address.sin_port = htons(port);
-        printf("\n\raddress set!\n\r");
-
-
-    
-        printf("\n\rbeginning network transmission, standby\n\r");
-        while(1)
-        {
-            readval = *(periph_base+RADIO_TUNER_FIFO_COUNTS);
-            if (readval > 256)
-            {
-                data[0] = readval;
-            for (int i = 0; i < readval - 1; i++)
-                {
-                    data[i+1] = periph_base+RADIO_TUNER_FIFO_DATA;
-                }
-            sent_bytes = sendto(handle, data, strlen(data), 0, (const struct sockaddr*) &address, sizeof(struct sockaddr_in));
-            }
-        
-        }
-    return NULL;
-}
 
 int main()
 {
 
      
 // first, get a pointer to the peripheral base address using /dev/mem and the function mmap
+    
     printf("\r\n\r\n\r\nLab 6 Michael Krzystowczyk - SDR Milestone Demonstration\n\r");
     volatile unsigned int *my_periph = get_a_pointer(RADIO_PERIPH_ADDRESS);	
     printf("\n\rPlease enter desired listening frequency\n\r");
@@ -207,8 +240,8 @@ int main()
     printf("\n\rplease enter destination ip address\n\r");
     scanf("%19s", addr);
     printf("\n\rNetwork traffic started\n\r");
+    //UDPtime(my_periph);
     radio_customization();
-    // pthread_t thread_id;
-    // pthread_create(&thread_id, NULL, UDPtime, NULL);
+    
     return 0;
 }
